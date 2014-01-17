@@ -46,12 +46,6 @@ class HeadsetPhoneState {
     // Number of held (background) calls
     private int mNumHeld = 0;
 
-    // Phone Number
-    private String mNumber;
-
-    // Type of Phone Number
-    private int mType = 0;
-
     // HFP 1.6 CIND signal
     private int mSignal = 0;
 
@@ -122,23 +116,6 @@ class HeadsetPhoneState {
         mNumHeld = numHeldCall;
     }
 
-    void setNumber(String mNumberCall ) {
-        mNumber = mNumberCall;
-    }
-
-    String getNumber()
-    {
-        return mNumber;
-    }
-
-    void setType(int mTypeCall) {
-        mType = mTypeCall;
-    }
-
-    int getType() {
-        return mType;
-    }
-
     int getSignal() {
         return mSignal;
     }
@@ -148,10 +125,7 @@ class HeadsetPhoneState {
     }
 
     void setRoam(int roam) {
-        if (mRoam != roam) {
-            mRoam = roam;
-            sendDeviceStateChanged();
-        }
+        mRoam = roam;
     }
 
     void setBatteryCharge(int batteryLevel) {
@@ -212,9 +186,7 @@ class HeadsetPhoneState {
         @Override
         public void onSignalStrengthsChanged(SignalStrength signalStrength) {
             int prevSignal = mSignal;
-            if (mService == HeadsetHalConstants.NETWORK_STATE_NOT_AVAILABLE)
-                mSignal = 0;
-            else if (signalStrength.isGsm()) {
+            if (signalStrength.isGsm()) {
                 mSignal = gsmAsuToSignal(signalStrength);
             } else {
                 mSignal = cdmaDbmEcioToSignal(signalStrength);

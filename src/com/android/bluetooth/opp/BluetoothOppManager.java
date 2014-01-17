@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  * Copyright (c) 2008-2009, Motorola, Inc.
  *
  * All rights reserved.
@@ -118,10 +117,6 @@ public class BluetoothOppManager {
     // The time for which the whitelist entries remain valid.
     private static final int WHITELIST_DURATION_MS = 15000;
 
-    public boolean isA2DPPlaying;
-
-    public boolean isScoConnected;
-
     /**
      * Get singleton instance.
      */
@@ -153,8 +148,7 @@ public class BluetoothOppManager {
 
         // Restore data from preference
         restoreApplicationData();
-        isA2DPPlaying = false;
-        isScoConnected = false;
+
         return true;
     }
 
@@ -439,14 +433,11 @@ public class BluetoothOppManager {
                     contentType = mTypeOfMultipleFiles;
                 }
 
-                BluetoothOppSendFileInfo fileInfo = BluetoothOppSendFileInfo.generateFileInfo(
-                mContext, fileUri, contentType);
                 ContentValues values = new ContentValues();
                 values.put(BluetoothShare.URI, fileUri.toString());
                 values.put(BluetoothShare.MIMETYPE, contentType);
                 values.put(BluetoothShare.DESTINATION, mRemoteDevice.getAddress());
                 values.put(BluetoothShare.TIMESTAMP, ts);
-                values.put(BluetoothShare.FILENAME_HINT, fileInfo.mFileName);
                 if (mIsHandoverInitiated) {
                     values.put(BluetoothShare.USER_CONFIRMATION,
                             BluetoothShare.USER_CONFIRMATION_HANDOVER_CONFIRMED);

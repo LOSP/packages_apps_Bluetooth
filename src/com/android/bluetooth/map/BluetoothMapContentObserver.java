@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.List;
 
 import org.xmlpull.v1.XmlSerializer;
 
@@ -43,7 +42,6 @@ import android.content.IntentFilter;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.text.format.Time;
 import android.os.Handler;
 import android.provider.BaseColumns;
 import android.provider.Telephony;
@@ -58,8 +56,6 @@ import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.util.Xml;
-import android.os.Looper;
-import android.os.Message;
 
 import com.android.bluetooth.map.BluetoothMapUtils.TYPE;
 import com.android.bluetooth.map.BluetoothMapbMessageMmsEmail.MimePart;
@@ -68,13 +64,13 @@ import com.google.android.mms.pdu.PduHeaders;
 public class BluetoothMapContentObserver {
     private static final String TAG = "BluetoothMapContentObserver";
 
-    private static final boolean D = BluetoothMapService.DEBUG;
-    private static final boolean V = BluetoothMapService.VERBOSE;
+    private static final boolean D = false;
+    private static final boolean V = false;
 
-    protected Context mContext;
-    protected ContentResolver mResolver;
-    protected BluetoothMnsObexClient mMnsClient;
-    protected int mMasId;
+    private Context mContext;
+    private ContentResolver mResolver;
+    private BluetoothMnsObexClient mMnsClient;
+    private int mMasId;
 
     public static final int DELETED_THREAD_ID = -1;
 
@@ -132,7 +128,7 @@ public class BluetoothMapContentObserver {
         return smsType;
     }
 
-    private final ContentObserver mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
+    private final ContentObserver mObserver = new ContentObserver(new Handler()) {
         @Override
         public void onChange(boolean selfChange) {
             onChange(selfChange, null);
@@ -167,7 +163,7 @@ public class BluetoothMapContentObserver {
         "outbox",
     };
 
-    public class Event {
+    private class Event {
         String eventType;
         long handle;
         String folder;
@@ -230,7 +226,7 @@ public class BluetoothMapContentObserver {
         }
     }
 
-    public class Msg {
+    private class Msg {
         long id;
         int type;
 
@@ -245,87 +241,6 @@ public class BluetoothMapContentObserver {
 
     private Map<Long, Msg> mMsgListMms =
         Collections.synchronizedMap(new HashMap<Long, Msg>());
-
-    /*
-     * Class to hold message handle for MCE Initiated operation
-     */
-    public class BluetoothMnsMsgHndlMceInitOp {
-        public String msgHandle;
-        Time time;
-    }
-
-    /*
-     * Keep track of Message Handles on which the operation was
-     * initiated by MCE
-     */
-    List<BluetoothMnsMsgHndlMceInitOp> opList = new ArrayList<BluetoothMnsMsgHndlMceInitOp>();
-
-    /*
-     * Adds the Message Handle to the list for tracking
-     * MCE initiated operation
-     */
-    public void addMceInitiatedOperation(String msgHandle) {
-        if (V) Log.v(TAG, "addMceInitiatedOperation for handle " + msgHandle);
-        BluetoothMnsMsgHndlMceInitOp op = new BluetoothMnsMsgHndlMceInitOp();
-        op.msgHandle = msgHandle;
-        op.time = new Time();
-        op.time.setToNow();
-        opList.add(op);
-    }
-    /*
-     * Removes the Message Handle from the list for tracking
-     * MCE initiated operation
-     */
-    public void removeMceInitiatedOperation(int location) {
-        if (V) Log.v(TAG, "removeMceInitiatedOperation for location " + location);
-        opList.remove(location);
-    }
-
-    /*
-     * Finds the location in the list of the given msgHandle, if
-     * available. "+" indicates the next (any) operation
-     */
-    public int findLocationMceInitiatedOperation( String msgHandle) {
-        int location = -1;
-
-        Time currentTime = new Time();
-        currentTime.setToNow();
-
-        if (V) Log.v(TAG, "findLocationMceInitiatedOperation " + msgHandle);
-
-        List<BluetoothMnsMsgHndlMceInitOp> staleOpList = new ArrayList<BluetoothMnsMsgHndlMceInitOp>();
-        for (BluetoothMnsMsgHndlMceInitOp op: opList) {
-            if (currentTime.toMillis(false) - op.time.toMillis(false) > 10000) {
-                // add stale entries
-                staleOpList.add(op);
-            }
-        }
-        if (!staleOpList.isEmpty()) {
-            for (BluetoothMnsMsgHndlMceInitOp op: staleOpList) {
-                // Remove stale entries
-                opList.remove(op);
-            }
-        }
-
-        for (BluetoothMnsMsgHndlMceInitOp op: opList) {
-            if (op.msgHandle.equalsIgnoreCase(msgHandle)){
-                location = opList.indexOf(op);
-                break;
-            }
-        }
-
-        if (location == -1) {
-            for (BluetoothMnsMsgHndlMceInitOp op: opList) {
-                if (op.msgHandle.equalsIgnoreCase("+")) {
-                    location = opList.indexOf(op);
-                    break;
-                }
-            }
-        }
-        if (V) Log.v(TAG, "findLocationMce loc" + location);
-        return location;
-    }
-
 
     public void registerObserver(BluetoothMnsObexClient mns, int masId) {
         if (V) Log.d(TAG, "registerObserver");
@@ -342,27 +257,19 @@ public class BluetoothMapContentObserver {
         mMnsClient = null;
     }
 
-    public void sendEvent(Event evt) {
+    private void sendEvent(Event evt) {
         Log.d(TAG, "sendEvent: " + evt.eventType + " " + evt.handle + " "
         + evt.folder + " " + evt.oldFolder + " " + evt.msgType.name());
-        int location = -1;
 
-        if (mMnsClient == null || mMnsClient.isConnected() == false) {
-            Log.d(TAG, "sendEvent: No MNS client registered or connected- don't send event");
+        if (mMnsClient == null) {
+            Log.d(TAG, "sendEvent: No MNS client registered - don't send event");
             return;
         }
-        String msgHandle = BluetoothMapUtils.getMapHandle(evt.handle,evt.msgType);
-        Log.d(TAG, "msgHandle is "+msgHandle);
-        location = findLocationMceInitiatedOperation(Long.toString(evt.handle));
-        Log.d(TAG, "location is "+location);
-        if(location == -1) {
-           try {
-               mMnsClient.sendEvent(evt.encode(), mMasId);
-            } catch (UnsupportedEncodingException ex) {
-               Log.w(TAG, ex);
-            }
-        } else {
-            removeMceInitiatedOperation(location);
+
+        try {
+            mMnsClient.sendEvent(evt.encode(), mMasId);
+        } catch (UnsupportedEncodingException ex) {
+            /* do nothing */
         }
     }
 
@@ -701,7 +608,7 @@ public class BluetoothMapContentObserver {
         return res;
     }
 
-    protected class PushMsgInfo {
+    private class PushMsgInfo {
         long id;
         int transparent;
         int retry;
@@ -745,6 +652,7 @@ public class BluetoothMapContentObserver {
             if(recipient.getEnvLevel() == 0) // Only send the message to the top level recipient
             {
                 /* Only send to first address */
+                String phone = recipient.getFirstPhoneNumber();
                 boolean read = false;
                 boolean deliveryReport = true;
 
@@ -753,17 +661,17 @@ public class BluetoothMapContentObserver {
                     {
                         /* Send message if folder is outbox */
                         /* to do, support MMS in the future */
-                        /*String phone = recipient.getFirstPhoneNumber();
+                        /*
                         if (folder.equals("outbox")) {
                            handle = sendMmsMessage(folder, phone, (BluetoothMapbMessageMmsEmail)msg);
-                        }*/
+                        }
+                        */
                         break;
                     }
                     case SMS_GSM: //fall-through
                     case SMS_CDMA:
                     {
                         /* Add the message to the database */
-                        String phone = recipient.getFirstPhoneNumber();
                         String msgBody = ((BluetoothMapbMessageSms) msg).getSmsBody();
                         Uri contentUri = Uri.parse("content://sms/" + folder);
                         Uri uri = Sms.addMessageToUri(mResolver, contentUri, phone, msgBody,
@@ -787,13 +695,6 @@ public class BluetoothMapContentObserver {
                     }
                     case EMAIL:
                     {
-                        /* Send message if folder is outbox */
-                        /* to do, support EMAIL in the future */
-                        Log.d(TAG, "AccountId " + BluetoothMapUtils.getEmailAccountId(mContext));
-                        if(folder.equalsIgnoreCase("draft"))
-                           folder="Drafts";
-                        handle = sendEmailMessage(folder, recipient.getEmailAddresses(),
-                            (BluetoothMapbMessageMmsEmail)msg);
                         break;
                     }
                 }
@@ -805,10 +706,6 @@ public class BluetoothMapContentObserver {
         return handle;
     }
 
-
-    public long sendEmailMessage(String folder,String[] toList, BluetoothMapbMessageMmsEmail msg) {
-        return -1;
-    }
 
 
     public long sendMmsMessage(String folder,String to_address, BluetoothMapbMessageMmsEmail msg) {
@@ -1071,7 +968,7 @@ public class BluetoothMapContentObserver {
         private final Uri UPDATE_STATUS_URI = Uri.parse("content://sms/status");
 
         public void register() {
-            Handler handler = new Handler(Looper.getMainLooper());
+            Handler handler = new Handler();
 
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(ACTION_MESSAGE_DELIVERY);

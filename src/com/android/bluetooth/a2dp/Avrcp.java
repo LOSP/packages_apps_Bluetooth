@@ -93,6 +93,9 @@ final class Avrcp {
     private static final String BLUETOOTH_ADMIN_PERM = android.Manifest.permission.BLUETOOTH_ADMIN;
     private static final String BLUETOOTH_PERM = android.Manifest.permission.BLUETOOTH;
     private int mSkipAmount;
+    private int mAddressedPlayerChangedNT;
+    private int mAvailablePlayersChangedNT;
+    private int mAddressedPlayerId;
 
     /* AVRC IDs from avrc_defs.h */
     private static final int AVRC_ID_REWIND = 0x48;

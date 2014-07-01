@@ -394,4 +394,31 @@ public class BluetoothMnsObexClient {
         msg.what = BluetoothMapService.MSG_ACQUIRE_WAKE_LOCK;
         msg.sendToTarget();
     }
+    
+        private void acquireMnsLock() {
+        if (V) Log.v(TAG, "About to acquire Mns:mWakeLock");
+        if (mWakeLock == null) {
+            PowerManager pm = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MnsPartialWakeLock");
+            mWakeLock.setReferenceCounted(false);
+            mWakeLock.acquire();
+            if (V) Log.v(TAG, "Mns:mWakeLock acquired");
+        }
+        else {
+            Log.e(TAG, "Mns:mWakeLock already acquired");
+        }
+    }
+
+    private void releaseMnsLock() {
+        if (V) Log.v(TAG, "About to release Mns:mWakeLock");
+        if (mWakeLock != null) {
+            if (mWakeLock.isHeld()) {
+                mWakeLock.release();
+                if (V) Log.v(TAG, "Mns:mWakeLock released");
+            } else {
+                if (V) Log.v(TAG, "Mns:mWakeLock already released");
+            }
+            mWakeLock = null;
+        }
+    }
 }

@@ -52,6 +52,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.PowerManager;
 import android.os.ServiceManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -160,6 +161,8 @@ public class BluetoothPbapService extends Service {
     private BluetoothSocket mConnSocket = null;
 
     private BluetoothDevice mRemoteDevice = null;
+    
+    private PowerManager.WakeLock mWakeLock = null;
 
     private static String sLocalPhoneNum = null;
 
